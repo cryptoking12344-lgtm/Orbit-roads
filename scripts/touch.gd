@@ -102,8 +102,9 @@ func _update() -> void:
 					s = clampf(d.x / reach, -1.0, 1.0)
 					if absf(s) < 0.12:
 						s = 0.0
-					if absf(d.y) > 34.0:
-						t = clampf(-(d.y - signf(d.y) * 34.0) / 60.0, -1.0, 1.0)
+					# speed only changes on a clearly vertical push, so steering never brakes by accident
+					if absf(d.y) > 48.0 and absf(d.y) > absf(d.x) * 0.9:
+						t = clampf(-(d.y - signf(d.y) * 48.0) / 60.0, -1.0, 1.0)
 					# let the stick follow the finger so reversing is instant
 					if absf(d.x) > reach * 1.25:
 						tc["start"].x = tc["pos"].x - signf(d.x) * reach * 1.25

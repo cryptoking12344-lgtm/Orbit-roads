@@ -7,6 +7,7 @@ extends RefCounted
 
 const TL := 1.5
 const MAXSPD := 15.0
+const MINSPD := 4.5   # the ship can slow down but never stops dead
 const HW := 0.3      # half width used for collisions
 const H := 0.42      # ship height
 const NOSE := 0.45
@@ -121,7 +122,7 @@ func step(dt: float, steer: float, throttle: float, jump: bool) -> void:
 	if not alive or finished:
 		return
 	time += dt
-	target = clampf(target + throttle * 9.0 * dt, 0.0, MAXSPD)
+	target = clampf(target + throttle * 9.0 * dt, MINSPD, MAXSPD)
 	var st := clampf(steer, -1.0, 1.0)
 	if on_ground and cur_tile == "I":
 		st = 0.0
@@ -141,9 +142,11 @@ func step(dt: float, steer: float, throttle: float, jump: bool) -> void:
 	# sideways
 	var nx := clampf(x + st * 5.2 * dt, -3.9, 3.9)
 	if nx != x:
-		var side := nx + signf(nx - x) * HW
-		if overlap(side, z, y + STEP, y + H) or overlap(side, z + NOSE * 0.8, y + STEP, y + H):
-			nx = x
+		# check both wing tips and the centre so the ship can never slide into a wall
+		for ox in [-HW, 0.0, HW]:
+			if overlap(nx + ox, z, y + STEP, y + H) or overlap(nx + ox, z + NOSE * 0.8, y + STEP, y + H):
+				nx = x
+				break
 
 	# forward
 	var nz := z + speed * dt
@@ -168,7 +171,7 @@ func step(dt: float, steer: float, throttle: float, jump: bool) -> void:
 		if not on_ground and vy < -2.5:
 			events.append("land")
 			# landed right on the lip of a tile after a gap
-			if solids(nx, nz - 0.5).is_empty() and floor_y < 0.01:
+			if solids(nx, nz - 0.28).is_empty() and floor_y < 0.01:
 				events.append("near")
 		ny = floor_y
 		vy = 0.0
@@ -189,7 +192,7 @@ func step(dt: float, steer: float, throttle: float, jump: bool) -> void:
 		coyote = 0.0
 		jump_buf = 0.0
 		events.append("jump")
-		if solids(nx, nz + 0.55).is_empty():
+		if solids(nx, nz + 0.22).is_empty():
 			events.append("near")
 
 	x = nx; y = ny; z = nz
@@ -219,7 +222,7 @@ func step(dt: float, steer: float, throttle: float, jump: bool) -> void:
 	if air <= 0.0:
 		_die("air")
 		return
-	if y < -7.0:
+	if y < -3.2:
 		_die("fell")
 		return
 	if z >= finish_z:

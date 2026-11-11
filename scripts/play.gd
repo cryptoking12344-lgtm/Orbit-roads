@@ -82,6 +82,8 @@ func _ready() -> void:
 	cur = Vector3(sim.x, sim.y, sim.z)
 	prev = cur
 	last_ms = Time.get_ticks_msec()
+	if not demo:
+		_prewarm()
 	_process(0.0)
 
 func _exit_tree() -> void:
@@ -432,9 +434,8 @@ func _on_event(e: String) -> void:
 			hud.show_banner("REFILL")
 		"near":
 			if near_cool <= 0.0:
-				near_cool = 2.5
-				Engine.time_scale = 0.45
-				slow_until = Time.get_ticks_msec() + 360
+				near_cool = 5.0
+				slow_until = Time.get_ticks_msec() + 280
 				Sfx.play("near", -4.0)
 				hud.show_banner("CLOSE!")
 		"die":
@@ -458,6 +459,15 @@ func _crash() -> void:
 	else:
 		Sfx.play("slow", -2.0, 0.7)
 		G.vibrate(120)
+
+## Draw the explosion once, out of sight, so its shaders are compiled before the first crash.
+func _prewarm() -> void:
+	var here := ship_root.position
+	ship_root.position = Vector3(0, -40, -sim.z - 30)
+	_explode()
+	ship_root.position = here
+	boom_light.queue_free()
+	boom_light = null
 
 func _explode() -> void:
 	var p := CPUParticles3D.new()
@@ -486,6 +496,7 @@ func _explode() -> void:
 	p.position = ship_root.position
 	add_child(p)
 	p.emitting = true
+	get_tree().create_timer(2.5).timeout.connect(p.queue_free)
 	boom_light = OmniLight3D.new()
 	boom_light.light_color = Color("ff9a3a")
 	boom_light.light_energy = 9.0
@@ -527,8 +538,10 @@ func _process(delta: float) -> void:
 	clock += real
 	near_cool = maxf(0.0, near_cool - real)
 	if slow_until > 0 and now >= slow_until:
-		Engine.time_scale = 1.0
 		slow_until = 0
+	if state == "play":
+		# ease in and out of slow motion so it never feels like a freeze
+		Engine.time_scale = move_toward(Engine.time_scale, 0.6 if slow_until > 0 else 1.0, real * 4.0)
 
 	var f := Engine.get_physics_interpolation_fraction() if state == "play" and not demo else 1.0
 	var p := prev.lerp(cur, f)
@@ -568,6 +581,10 @@ func _process(delta: float) -> void:
 	if demo:
 		cpos = Vector3(sin(clock * 0.25) * 1.6, 3.3, -p.z + 5.2)
 		look = Vector3(0, 0.6, -p.z - 4.0)
+	if p.y < -0.2 and not demo:
+		# follow a fall so the ship stays in view
+		look.y += maxf(p.y, -3.5) * 0.9
+		cpos.y += maxf(p.y, -3.5) * 0.35
 	if shake > 0.0:
 		cpos += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * shake * 0.35
 		shake = maxf(0.0, shake - real * 1.8)
@@ -603,7 +620,10 @@ func _process(delta: float) -> void:
 			Sfx.play("low_air" if sim.air < 0.22 else "low_fuel", -8.0)
 	if state == "dead" or state == "clear":
 		end_t += real
-		if not panel_shown and end_t > (1.25 if state == "dead" else 0.75):
+		var wait := 0.75
+		if state == "dead":
+			wait = 0.45 if sim.fail == "fell" else 1.2
+		if not panel_shown and end_t > wait:
 			panel_shown = true
 			if state == "dead":
 				_show_fail()

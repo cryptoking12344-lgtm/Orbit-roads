@@ -24,10 +24,17 @@ func _process(delta: float) -> void:
 	banner_t = maxf(0.0, banner_t - delta)
 	queue_redraw()
 
+var _boxes := {}
+func _sb(col: Color, r: int, border := Color(0, 0, 0, 0)) -> StyleBoxFlat:
+	var key := [col, r, border]
+	if not _boxes.has(key):
+		_boxes[key] = UI.box(col, border, r)
+	return _boxes[key]
+
 func _bar(x: float, y: float, w: float, h: float, v: float, col: Color) -> void:
-	draw_style_box(UI.box(UI.LINE2, Color(0, 0, 0, 0), int(h / 2)), Rect2(x, y, w, h))
+	draw_style_box(_sb(UI.LINE2, int(h / 2)), Rect2(x, y, w, h))
 	if v > 0.01:
-		draw_style_box(UI.box(col, Color(0, 0, 0, 0), int(h / 2)), Rect2(x, y, maxf(h, w * clampf(v, 0.0, 1.0)), h))
+		draw_style_box(_sb(col, int(h / 2)), Rect2(x, y, maxf(h, w * clampf(v, 0.0, 1.0)), h))
 
 func _draw() -> void:
 	var w := size.x
@@ -35,7 +42,7 @@ func _draw() -> void:
 	draw_string(fb, Vector2(84, 62), title, HORIZONTAL_ALIGNMENT_LEFT, w - 170, 13, UI.INK)
 	draw_string(fb, Vector2(w - 100, 62), "%d%%" % int(progress * 100), HORIZONTAL_ALIGNMENT_RIGHT, 80, 13, UI.CY)
 	_bar(84, 72, w - 104, 7, progress, UI.CY)
-	draw_style_box(UI.box(Color(0.063, 0.071, 0.165, 0.92), UI.LINE2, 10), Rect2(20, 104, w - 40, 44))
+	draw_style_box(_sb(Color(0.063, 0.071, 0.165, 0.92), 10, UI.LINE2), Rect2(20, 104, w - 40, 44))
 	var cw := (w - 68) / 3.0
 	var items := [["FUEL", fuel, UI.OR], ["AIR", air, UI.CY], ["SPEED", speed, UI.INK]]
 	for i in 3:

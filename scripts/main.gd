@@ -58,6 +58,9 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
 	view_ship = int(G.data["ship"])
+	# very high resolution screens: draw the 3D scene a little smaller to keep frames steady
+	if mini(DisplayServer.window_get_size().x, DisplayServer.window_get_size().y) > 1200:
+		get_viewport().scaling_3d_scale = 0.8
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("shot="):
 			shot = a.split("=")[1]
@@ -67,6 +70,8 @@ func _ready() -> void:
 			for i in int(a.split("=")[1]):
 				G.data["cleared"][i] = true
 				G.data["best"][i] = 11.0 + i * 0.37
+		elif a.begins_with("scale3d="):
+			get_viewport().scaling_3d_scale = float(a.split("=")[1])
 		elif a.begins_with("layout="):
 			G.data["controls"] = a.split("=")[1]
 	Sfx.music("music_menu")
@@ -449,7 +454,9 @@ func _settings() -> void:
 			G.save()
 			show_screen("settings"))
 		_add(b, 36 + k * 158, 160, 150, 56)
-	_add(UI.label("Steering and jumps feel the same at every setting. 120 needs a 120 Hz screen.", 12, UI.MUTE, "Medium"), 36, 228, 470, 30)
+	var fn := UI.label("This screen runs at %d Hz. Pick a rate at or below it; steering and jumps feel the same at every setting." % int(round(G.screen_hz())), 12, UI.MUTE, "Medium")
+	fn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_add(fn, 36, 222, 468, 40)
 	_add(UI.label("SOUND", 11, UI.CY), 20, 296, 200, 18)
 	_toggle("Music", 318, "music", func(): Sfx.refresh_music())
 	_toggle("Sound effects", 382, "sfx")
@@ -477,6 +484,11 @@ func _run_shot() -> void:
 		for a2 in OS.get_cmdline_user_args():
 			if a2.begins_with("tgt="):
 				play.sim.target = float(a2.split("=")[1])
+	elif kind == "fall":
+		play.sim.x = 3.85
+		play.cur = Vector3(3.85, 0, play.sim.z)
+		play.prev = play.cur
+		shot = "soak"
 	elif kind == "touchtest":
 		pass
 	elif kind == "tunnel":

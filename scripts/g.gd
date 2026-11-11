@@ -33,6 +33,10 @@ func _ready() -> void:
 	for i in roads.size():
 		data["cleared"].append(false)
 		data["best"].append(0.0)
+	# manual interpolation is used for drawing, so the engine's own jitter fix must be off
+	Engine.physics_jitter_fix = 0.0
+	if screen_hz() >= 100.0:
+		data["fps"] = 120
 	_load()
 	apply_fps()
 
@@ -63,8 +67,15 @@ func save() -> void:
 	if f:
 		f.store_string(JSON.stringify(data))
 
+func screen_hz() -> float:
+	var hz := DisplayServer.screen_get_refresh_rate()
+	return hz if hz > 1.0 else 60.0
+
+## A frame cap equal to the screen's refresh rate fights with vsync and causes
+## periodic hitches, so only cap when the chosen rate is below the screen's.
 func apply_fps() -> void:
-	Engine.max_fps = int(data["fps"])
+	var want := int(data["fps"])
+	Engine.max_fps = 0 if want >= screen_hz() - 5.0 else want
 
 func road_unlocked(i: int) -> bool:
 	return i == 0 or bool(data["cleared"][i - 1])
