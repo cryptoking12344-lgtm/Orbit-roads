@@ -1,0 +1,44 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="Orbit Roads"
+config/version="1.0.0"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.png"
+config/quit_on_go_back=false
+boot_splash/bg_color=Color(0.039, 0.043, 0.078, 1)
+boot_splash/image="res://icon.png"
+boot_splash/fullsize=false
+
+[autoload]
+
+G="*res://scripts/g.gd"
+Sfx="*res://scripts/sfx.gd"
+
+[display]
+
+window/size/viewport_width=540
+window/size/viewport_height=1170
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=8
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=1
+environment/defaults/default_clear_color=Color(0.02, 0.022, 0.05, 1)
